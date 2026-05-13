@@ -18,6 +18,18 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasRoles;
 
+    protected $fillable = [
+        'business_name',
+        'email',
+        'phone',
+        'address',
+    ];
+
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -29,5 +41,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function vendor()
+    {
+        return $this->belongsTo(Vendor::class);
     }
 }
