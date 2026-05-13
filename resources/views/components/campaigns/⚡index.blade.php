@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\SendWhatsAppMessageJob;
 use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\Vendor;
@@ -12,6 +13,8 @@ new class extends Component {
     public string $title = '';
 
     public string $message = '';
+
+    public string $campaign = '';
 
     public array $selectedContacts = [];
 
@@ -50,6 +53,29 @@ new class extends Component {
             'message',
             'selectedContacts',
         ]);
+    }
+
+    public function sendCampaign($campaignId)
+    {
+        $campaign = Campaign::find($campaignId);
+
+        $campaign->update([
+            'status' => 'sending'
+        ]);
+
+        foreach ($campaign->contacts as $contact) {
+
+            SendWhatsAppMessageJob::dispatch(
+                $campaign,
+                $contact
+            );
+
+        }
+
+        session()->flash(
+            'success',
+            'Campaign Queued Successfully'
+        );
     }
 
 };
@@ -171,6 +197,8 @@ new class extends Component {
             Save Campaign
         </button>
 
+        
+
     </form>
 
     <hr><br>
@@ -199,6 +227,12 @@ new class extends Component {
             <strong>
                 {{ $campaign->status }}
             </strong>
+
+            <br><br>
+
+            <button wire:click="sendCampaign({{ $campaign->id }})">
+                Send Campaign
+            </button>
 
         </div>
 
