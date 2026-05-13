@@ -22,4 +22,9 @@ class Vendor extends Model
     {
         return $this->hasMany(Contact::class);
     }
+
+    public function campaigns()
+    {
+        return $this->hasMany(Campaign::class);
+    }
 }
