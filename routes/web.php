@@ -16,3 +16,4 @@ require __DIR__.'/auth.php';
 
 Route::livewire('/vendors', 'vendors.index')->middleware(['auth', 'role:admin']);
 Route::livewire('/vendor-users', 'vendor-users.index')->middleware(['auth', 'role:admin']);
+Route::livewire('/contacts', 'contacts.index')->middleware(['auth']);
