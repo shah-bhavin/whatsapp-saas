@@ -1,16 +1,19 @@
 <?php
 
-use Livewire\Component;
 use App\Models\Campaign;
+use App\Models\Contact;
 use App\Models\Vendor;
+use Livewire\Component;
 
 new class extends Component {
 
-    public string $vendor_id = '';
+    public string $vendor_id;
 
     public string $title = '';
 
     public string $message = '';
+
+    public array $selectedContacts = [];
 
     public function save()
     {
@@ -18,14 +21,23 @@ new class extends Component {
             'vendor_id' => 'required',
             'title' => 'required|min:3',
             'message' => 'required|min:5',
+            'selectedContacts' => 'required|array',
         ]);
 
-        Campaign::create([
+        $campaign = Campaign::create([
             'vendor_id' => $this->vendor_id,
             'title' => $this->title,
             'message' => $this->message,
             'status' => 'draft',
         ]);
+
+        foreach ($this->selectedContacts as $contactId) {
+
+            $campaign->contacts()->attach($contactId, [
+                'status' => 'pending',
+            ]);
+
+        }
 
         session()->flash(
             'success',
@@ -36,6 +48,7 @@ new class extends Component {
             'vendor_id',
             'title',
             'message',
+            'selectedContacts',
         ]);
     }
 
@@ -119,6 +132,40 @@ new class extends Component {
             @enderror
 
         </div>
+
+        
+        <div style="margin-bottom:20px;">
+
+            <label>Select Contacts</label><br><br>
+
+            @foreach(
+                Contact::where(
+                    'vendor_id',
+                     auth()->user()->vendor_id
+                )->get() as $contact
+            )
+
+                <div>
+
+                    <label>
+
+                        <input
+                            type="checkbox"
+                            wire:model="selectedContacts"
+                            value="{{ $contact->id }}"
+                        >
+
+                        {{ $contact->name }}
+                        ({{ $contact->mobile }})
+
+                    </label>
+
+                </div>
+
+            @endforeach
+
+        </div>
+
 
         <button type="submit">
             Save Campaign

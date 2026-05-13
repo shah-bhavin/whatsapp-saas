@@ -18,4 +18,15 @@ class Contact extends Model
     {
         return $this->belongsTo(Vendor::class);
     }
+
+    public function campaigns()
+    {
+        return $this->belongsToMany(Campaign::class)
+            ->withPivot([
+                'status',
+                'sent_at',
+                'error_message',
+            ])
+            ->withTimestamps();
+    }
 }
