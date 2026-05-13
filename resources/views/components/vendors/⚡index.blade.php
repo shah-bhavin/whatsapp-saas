@@ -13,6 +13,10 @@ new class extends Component
 
     public string $address = '';
 
+    public ?int $vendor_id = null;
+
+    public bool $isEditing = false;
+    
     public function save()
     {
         $this->validate([
@@ -31,7 +35,66 @@ new class extends Component
 
         session()->flash('success', 'Vendor Created Successfully');
 
-        $this->reset();
+        $this->resetForm();
+    }
+
+    public function edit($id)
+    {
+        $vendor = Vendor::find($id);
+
+        $this->vendor_id = $vendor->id;
+
+        $this->business_name = $vendor->business_name;
+
+        $this->email = $vendor->email;
+
+        $this->phone = $vendor->phone;
+
+        $this->address = $vendor->address;
+
+        $this->isEditing = true;
+    }
+
+    public function update()
+    {
+        $this->validate([
+            'business_name' => 'required|min:3',
+            'email' => 'nullable|email',
+            'phone' => 'nullable|min:10',
+            'address' => 'nullable',
+        ]);
+
+        $vendor = Vendor::find($this->vendor_id);
+
+        $vendor->update([
+            'business_name' => $this->business_name,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'address' => $this->address,
+        ]);
+
+        session()->flash('success', 'Vendor Updated Successfully');
+
+        $this->resetForm();
+    }
+
+    public function delete($id)
+    {
+        Vendor::find($id)?->delete();
+
+        session()->flash('success', 'Vendor Deleted Successfully');
+    }
+
+    public function resetForm()
+    {
+        $this->reset([
+            'vendor_id',
+            'business_name',
+            'email',
+            'phone',
+            'address',
+            'isEditing',
+        ]);
     }
 };
 ?>
@@ -40,21 +103,33 @@ new class extends Component
 
     <hr><br>
 
-<h2>Vendor List</h2>
+    <h2>Vendor List</h2>
 
-@foreach (\App\Models\Vendor::latest()->get() as $vendor)
+    @foreach (\App\Models\Vendor::latest()->get() as $vendor)
 
-    <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+        <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
 
-        <strong>{{ $vendor->business_name }}</strong><br>
+            <strong>{{ $vendor->business_name }}</strong><br>
 
-        {{ $vendor->email }}<br>
+            {{ $vendor->email }}<br>
 
-        {{ $vendor->phone }}
+            {{ $vendor->phone }}
+            
+                        <br><br>
 
-    </div>
+            <button wire:click="edit({{ $vendor->id }})">
+                Edit
+            </button>
 
-@endforeach
+            <button
+                wire:click="delete({{ $vendor->id }})"
+                onclick="return confirm('Are you sure?')"
+            >
+                Delete
+            </button>
+        </div>
+
+    @endforeach
 
     <h1>Create Vendor</h1>
 
@@ -64,7 +139,7 @@ new class extends Component
         </div>
     @endif
 
-    <form wire:submit="save">
+    <form wire:submit="{{ $isEditing ? 'update' : 'save' }}">
 
         <div style="margin-bottom: 15px;">
 
@@ -132,7 +207,7 @@ new class extends Component
         </div>
 
         <button type="submit">
-            Save Vendor
+            {{ $isEditing ? 'Update Vendor' : 'Save Vendor' }}
         </button>
 
     </form>
