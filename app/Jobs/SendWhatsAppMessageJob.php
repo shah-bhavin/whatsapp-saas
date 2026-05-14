@@ -10,6 +10,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Events\CampaignProgressUpdated;
 
+use App\Services\WhatsAppService;
+
 class SendWhatsAppMessageJob implements ShouldQueue
 {
     use Queueable, InteractsWithQueue, SerializesModels;
@@ -33,15 +35,46 @@ class SendWhatsAppMessageJob implements ShouldQueue
      */
     public function handle(): void
     {
-        sleep(2);
+        $service = new WhatsAppService();
 
-        $this->campaign->contacts()->updateExistingPivot(
-            $this->contact->id,
-            [
-                'status' => 'sent',
-                'sent_at' => now(),
-            ]
+        $response = $service->sendMessage(
+
+            $this->contact->mobile,
+
+            $this->campaign->message
+
         );
+
+        if ($response->successful()) {
+
+            $this->campaign->contacts()
+                ->updateExistingPivot(
+
+                    $this->contact->id,
+
+                    [
+                        'status' => 'sent',
+
+                        'sent_at' => now(),
+                    ]
+                );
+
+        } else {
+
+            $this->campaign->contacts()
+                ->updateExistingPivot(
+
+                    $this->contact->id,
+
+                    [
+                        'status' => 'failed',
+
+                        'error_message' =>
+                            $response->body(),
+                    ]
+                );
+
+        }
 
         $sentCount = $this->campaign
             ->contacts()
