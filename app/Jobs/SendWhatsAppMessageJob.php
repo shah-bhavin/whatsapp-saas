@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use App\Events\CampaignProgressUpdated;
 
 class SendWhatsAppMessageJob implements ShouldQueue
 {
@@ -41,6 +42,22 @@ class SendWhatsAppMessageJob implements ShouldQueue
                 'sent_at' => now(),
             ]
         );
+
+        $sentCount = $this->campaign
+            ->contacts()
+            ->wherePivot('status', 'sent')
+            ->count();
+
+        $pendingCount = $this->campaign
+            ->contacts()
+            ->wherePivot('status', 'pending')
+            ->count();
+
+        broadcast(new CampaignProgressUpdated(
+            $this->campaign->id,
+            $sentCount,
+            $pendingCount
+        ));
 
         logger(
             'Message Sent To: ' .

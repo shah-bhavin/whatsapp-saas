@@ -18,6 +18,8 @@ new class extends Component {
 
     public array $selectedContacts = [];
 
+    public array $progress = [];
+
     public function save()
     {
         $this->validate([
@@ -230,6 +232,20 @@ new class extends Component {
 
             <br><br>
 
+            <div>
+
+                Sent:
+                {{ $progress[$campaign->id]['sent'] ?? 0 }}
+
+                <br>
+
+                Pending:
+                {{ $progress[$campaign->id]['pending'] ?? 0 }}
+
+            </div>
+
+            <br><br>
+
             <button wire:click="sendCampaign({{ $campaign->id }})">
                 Send Campaign
             </button>
@@ -237,4 +253,22 @@ new class extends Component {
         </div>
 
     @endforeach
+
+    <script>
+    document.addEventListener('livewire:init', () => {
+        Echo.channel('campaign-progress')
+            .listen('CampaignProgressUpdated', (event) => {
+                // @this or $wire references the current scope component instance
+                @this.set(
+                    'progress.' + event.campaignId,
+                    {
+                        sent: event.sentCount,
+                        pending: event.pendingCount,
+                    }
+                );
+            });
+    });
+    </script>
+
 </div>
+
