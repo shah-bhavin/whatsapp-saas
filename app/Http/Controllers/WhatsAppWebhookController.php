@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Contact;
 use App\Models\Message;
+use App\Events\NewWhatsAppMessageReceived;
 
 class WhatsAppWebhookController extends Controller
 {
@@ -31,13 +32,24 @@ class WhatsAppWebhookController extends Controller
         $mobile = $messageData['from'];
         $contact = Contact::where('mobile', $mobile)->first();
 
-        Message::create([
+        $message = Message::create([
+
             'contact_id' => $contact?->id,
-            'mobile'     => $mobile,
-            'message'    => $messageData['text']['body'] ?? '',
-            'direction'  => 'incoming',
-            'status'     => 'received',
+
+            'mobile' => $mobile,
+
+            'message' => $messageData['text']['body'] ?? '',
+
+            'direction' => 'incoming',
+
+            'status' => 'received',
         ]);
+
+        broadcast(
+            new NewWhatsAppMessageReceived(
+                $message
+            )
+        );
 
         return response()->json(['success' => true]);
     }
