@@ -18,3 +18,4 @@ Route::livewire('/vendors', 'vendors.index')->middleware(['auth', 'role:admin'])
 Route::livewire('/vendor-users', 'vendor-users.index')->middleware(['auth', 'role:admin']);
 Route::livewire('/contacts', 'contacts.index')->middleware(['auth']);
 Route::livewire('/campaigns', 'campaigns.index')->middleware(['auth']);
+Route::livewire('/chat', 'chat.inbox')->middleware('auth');
