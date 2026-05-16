@@ -1,52 +1,37 @@
-<?php
-
-namespace App\Services;
+<?php namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
-class WhatsAppService
+class WhatsAppService 
 {
-    public function sendMessage($mobile)
+    protected $token;
+    protected $phoneNumberId;
+
+    public function __construct() 
     {
+        $this->token = env('WHATSAPP_ACCESS_TOKEN');
+        $this->phoneNumberId = env('WHATSAPP_PHONE_NUMBER_ID');
+    }
 
-        $token = env('WHATSAPP_ACCESS_TOKEN');
+    /**
+     * Send a text message via WhatsApp.
+     *
+     * @param string $mobile
+     * @param string $message
+     * @return \Illuminate\Http\Client\Response
+     */
+    public function sendTextMessage($mobile, $message) 
+    {
+        $url = "https://graph.facebook.com/v25.0/" . $this->phoneNumberId . "/messages"; 
 
-        $phoneNumberId = env(
-            'WHATSAPP_PHONE_NUMBER_ID'
-        );
-
-        $url =
-            "https://graph.facebook.com/v25.0/" .
-            $phoneNumberId .
-            "/messages";
-
-        $response = Http::withToken($token)
-
+        return Http::withToken($this->token)
             ->post($url, [
-
                 'messaging_product' => 'whatsapp',
-
-                'to' => $mobile,
-
-                'type' => 'template',
-
-                'template' => [
-
-                    'name' => 'hello_world',
-
-                    'language' => [
-                        'code' => 'en_US'
-                    ]
-
+                'to'                => $mobile,
+                'type'              => 'text',
+                'text'              => [
+                    'body' => $message
                 ]
-
-        ]);
-
-        Log::info('WhatsApp API Response');
-
-        Log::info($response->body());
-
-        return $response;
+            ]);
     }
 }

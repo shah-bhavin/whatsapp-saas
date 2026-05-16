@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Contact;
 use App\Models\Message;
 use App\Events\NewWhatsAppMessageReceived;
+use App\Events\WhatsAppMessageStatusUpdated;
 
 class WhatsAppWebhookController extends Controller
 {
@@ -23,6 +24,35 @@ class WhatsAppWebhookController extends Controller
 
         // 2. Extract Incoming Message Data
         $messageData = $request->input('entry.0.changes.0.value.messages.0');
+        $entry = $request->input('entry');
+        $statusData = $entry[0]['changes'][0]['value']['statuses'][0] ?? null;
+        if ($statusData) {
+            $messageId = $statusData['id'];
+            $status = $statusData['status'];
+            $message = Message::where(
+                'whatsapp_message_id',
+                $messageId
+            )->first();
+
+            if ($message) {
+
+                $message->update([
+
+                    'status' => $status
+
+                ]);
+
+                broadcast(
+
+                    new WhatsAppMessageStatusUpdated(
+                        $message
+                    )
+
+                );
+            }
+
+            return response()->json(['success' => true]);
+        }
 
         if (!$messageData) {
             return response()->json(['success' => true]);
@@ -31,7 +61,9 @@ class WhatsAppWebhookController extends Controller
         // 3. Log Incoming Message
         $mobile = $messageData['from'];
         $contact = Contact::where('mobile', $mobile)->first();
-
+        
+        
+        
         $message = Message::create([
 
             'contact_id' => $contact?->id,
@@ -50,6 +82,8 @@ class WhatsAppWebhookController extends Controller
                 $message
             )
         );
+
+        
 
         return response()->json(['success' => true]);
     }

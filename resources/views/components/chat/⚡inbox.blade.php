@@ -1,30 +1,21 @@
 <?php
 
 use Livewire\Component;
-
 use App\Models\Contact;
-
 use App\Models\Message;
-
 use Livewire\Attributes\On;
 
 new class extends Component {
-
     public $contacts = [];
-
     public $selectedContact = null;
-
     public $messages = [];
-
     public $replyMessage = '';
 
     #[On('refreshChat')]
     public function refreshChat()
     {
         if ($this->selectedContact) {
-
             $this->loadMessages();
-
         }
     }
 
@@ -40,56 +31,50 @@ new class extends Component {
 
     public function selectContact($contactId)
     {
-        $this->selectedContact =
-            Contact::find($contactId);
-
+        $this->selectedContact = Contact::find($contactId);
         $this->loadMessages();
     }
 
     public function loadMessages()
     {
-        $this->messages = Message::where(
-                'mobile',
-                $this->selectedContact->mobile
-            )
+        $this->messages = Message::where('mobile', $this->selectedContact->mobile)
             ->latest()
             ->get()
             ->reverse();
     }
+    
+    // $statusData = $entry[0]['changes'][0]['value']['statuses'][0] ?? null;
+    //     if ($statusData) {
+    //         $messageId = $statusData['id'];
+    //         $status = $statusData['status'];
+    //         Message::where(
+    //             'whatsapp_message_id',
+    //             $messageId
+    //         )->update(['status' => $status]);
+    //         return response()->json(['success' => true]);
+    //     }
 
     public function sendReply()
     {
-        $service =
-            new \App\Services\WhatsAppService();
-
-        $response = $service->sendMessage(
-
+        $service = new \App\Services\WhatsAppService();
+        $response = $service->sendTextMessage(
             $this->selectedContact->mobile,
-
             $this->replyMessage
-
         );
 
         if ($response->successful()) {
-
+            $data = $response->json();
+            $whatsappMessageId = $data['messages'][0]['id'] ?? null;
             Message::create([
-
-                'contact_id' =>
-                    $this->selectedContact->id,
-
-                'mobile' =>
-                    $this->selectedContact->mobile,
-
-                'message' =>
-                    $this->replyMessage,
-
-                'direction' => 'outgoing',
-
-                'status' => 'sent',
+                'contact_id' => $this->selectedContact->id,
+                'mobile'     => $this->selectedContact->mobile,
+                'message'    => $this->replyMessage,
+                'direction'  => 'outgoing',
+                'status'     => 'sent',
+                'whatsapp_message_id' => $whatsappMessageId,
             ]);
 
             $this->replyMessage = '';
-
             $this->loadMessages();
         }
     }
@@ -125,6 +110,37 @@ new class extends Component {
                     <small style="display: block; color: #888; font-size: 0.7rem; margin-top: 2px; text-align: right;">
                         {{ $message->created_at }}
                     </small>
+                    @if($message->direction === 'outgoing')
+
+                    <div>
+
+                        @if($message->status === 'sent')
+
+                        ✓
+
+                        @elseif(
+                        $message->status === 'delivered'
+                        )
+
+                        ✓✓
+
+                        @elseif(
+                        $message->status === 'read'
+                        )
+
+                        ✓✓ Read
+
+                        @elseif(
+                        $message->status === 'failed'
+                        )
+
+                        Failed
+
+                        @endif
+
+                    </div>
+
+                    @endif
                 </div>
             </div>
             @endforeach
@@ -146,19 +162,18 @@ new class extends Component {
         </div>
         @endif
     </div>
+
     <script>
         document.addEventListener('livewire:init', () => {
-            Echo.channel('whatsapp-chat').listen(
-                'NewWhatsAppMessageReceived', (event) => {
+            Echo.channel('whatsapp-chat').listen('NewWhatsAppMessageReceived', (event) => {
+                console.log('New Message', event);
+                Livewire.dispatch('refreshChat');
+            }).listen(
+                'WhatsAppMessageStatusUpdated',
 
-                    console.log(
-                        'New Message',
-                        event
-                    );
+                (event) => {
 
-                    // Livewire.dispatch(
-                    //     'refreshChat', { messageData: event }
-                    // );
+                    console.log('New Message', event);
                     Livewire.dispatch('refreshChat');
 
                 }
@@ -166,4 +181,3 @@ new class extends Component {
         });
     </script>
 </div>
-
