@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Campaign;
 use App\Models\Contact;
+use App\Models\Message;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -35,6 +36,20 @@ class SendWhatsAppMessageJob implements ShouldQueue
      */
     public function handle(): void
     {
+        Message::create([
+
+                'contact_id' => $this->contact->id,
+
+                // 'campaign_id' => $this->campaign->id,
+
+                'mobile' => $this->contact->mobile,
+
+                'message' => $this->campaign->message,
+
+                'direction' => 'outgoing',
+
+                'status' => 'sent',
+            ]);
         $service = new WhatsAppService();
 
         $response = $service->sendMessage(
@@ -58,6 +73,7 @@ class SendWhatsAppMessageJob implements ShouldQueue
                         'sent_at' => now(),
                     ]
                 );
+            
 
         } else {
 
