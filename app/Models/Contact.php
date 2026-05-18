@@ -29,4 +29,21 @@ class Contact extends Model
             ])
             ->withTimestamps();
     }
+
+    public function assignedUser()
+    {
+        return $this->belongsTo(User::class, 'assigned_user_id');
+    }
+    public function labels()
+    {
+        return $this->belongsToMany(
+            Label::class
+        );
+    }
+    public function notes()
+    {
+        return $this->hasMany(
+            ContactNote::class
+        );
+    }
 }

@@ -47,4 +47,16 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Vendor::class);
     }
+
+    public function assignedContacts()
+    {
+        return $this->hasMany(Contact::class, 'assigned_user_id');
+    }
+
+    public function contactNotes()
+    {
+        return $this->hasMany(
+            ContactNote::class
+        );
+    }
 }
