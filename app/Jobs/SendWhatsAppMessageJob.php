@@ -36,16 +36,23 @@ class SendWhatsAppMessageJob implements ShouldQueue
         // 1. Create outbound database log
         Message::create([
             'contact_id' => $this->contact->id,
-            // 'campaign_id' => $this->campaign->id,
+            //'campaign_id' => $this->campaign->id,
             'mobile'     => $this->contact->mobile,
             'message'    => $this->campaign->message,
             'direction'  => 'outgoing',
             'status'     => 'sent',
         ]);
-
         // 2. Dispatch via WhatsApp Service
         $service = new WhatsAppService();
-        $response = $service->sendTextMessage($this->contact->mobile, $this->campaign->message);
+
+        if ($this->campaign->type === 'template') {
+
+            $response = $service->sendTemplateMessage($this->contact->mobile, $this->campaign->template->template_name, [$this->contact->name]);
+
+        } else {
+            $response = $service->sendTextMessage($this->contact->mobile, $this->campaign->message);
+        }
+        
 
         // 3. Process API responses and update pivot tables
         if ($response->successful()) {
@@ -67,6 +74,6 @@ class SendWhatsAppMessageJob implements ShouldQueue
         // 5. Broadcast live metrics & log results
         broadcast(new CampaignProgressUpdated($this->campaign->id, $sentCount, $pendingCount));
         
-        logger('Message Processed for: ' . $this->contact->mobile);
+        //logger('Message Processed for: ' . $this->contact->mobile);
     }
 }

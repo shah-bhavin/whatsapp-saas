@@ -29,4 +29,12 @@ class Campaign extends Model
             ])
             ->withTimestamps();
     }
+
+    public function template()
+    {
+        return $this->belongsTo(
+            WhatsAppTemplate::class,
+            'whats_app_template_id'
+        );
+    }
 }

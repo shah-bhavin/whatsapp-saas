@@ -60,13 +60,11 @@ new class extends Component {
     public function sendCampaign($campaignId)
     {
         $campaign = Campaign::find($campaignId);
-
         $campaign->update([
             'status' => 'sending'
         ]);
 
         foreach ($campaign->contacts as $contact) {
-
             SendWhatsAppMessageJob::dispatch(
                 $campaign,
                 $contact
