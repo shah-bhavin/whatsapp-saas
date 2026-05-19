@@ -110,17 +110,20 @@ new class extends Component {
         $this->selectedContact->refresh();
     }
 
-    public function updateStatus()
+public function updateStatus() 
 {
+    // Safety check to ensure a real status is selected
+    if (empty($this->selectedStatus)) {
+        return;
+    }
+
     $this->selectedContact->update([
-
-        'status' =>
-            $this->selectedStatus
-
+        'status' => $this->selectedStatus
     ]);
 
     $this->selectedContact->refresh();
 }
+
 
 public function updateLabels()
 {
@@ -212,31 +215,11 @@ public function updateLabels()
 
 <h4>Status</h4>
 
-<select
-    wire:model="selectedStatus"
-
-    wire:change="updateStatus"
-
-    style="
-        width:100%;
-        padding:10px;
-    "
->
-
-    <option value="">
-        Select Status
-    </option>
-
+<select wire:model.live="selectedStatus" wire:change="updateStatus" style="width: 100%; padding: 10px;">
+    <option value="">Select Status</option>
     @foreach($statuses as $status)
-
-        <option value="{{ $status }}">
-
-            {{ ucfirst($status) }}
-
-        </option>
-
+        <option value="{{ $status }}">{{ ucfirst($status) }}</option>
     @endforeach
-
 </select>
 
 <hr>

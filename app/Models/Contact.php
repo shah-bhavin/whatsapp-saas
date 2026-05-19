@@ -12,6 +12,8 @@ class Contact extends Model
         'name',
         'mobile',
         'email',
+        'status',
+        'follow_up_at'
     ];
 
     public function vendor()
