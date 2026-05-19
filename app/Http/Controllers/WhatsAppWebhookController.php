@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Contact;
-use App\Models\Message;
 use App\Events\NewWhatsAppMessageReceived;
 use App\Events\WhatsAppMessageStatusUpdated;
+use App\Models\AutomationRule;
+use App\Models\Contact;
+use App\Models\Message;
+use App\Services\WhatsAppService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class WhatsAppWebhookController extends Controller
 {
@@ -26,29 +29,15 @@ class WhatsAppWebhookController extends Controller
         $messageData = $request->input('entry.0.changes.0.value.messages.0');
         $entry = $request->input('entry');
         $statusData = $entry[0]['changes'][0]['value']['statuses'][0] ?? null;
+
         if ($statusData) {
             $messageId = $statusData['id'];
             $status = $statusData['status'];
-            $message = Message::where(
-                'whatsapp_message_id',
-                $messageId
-            )->first();
+            $message = Message::where('whatsapp_message_id', $messageId)->first();
 
             if ($message) {
-
-                $message->update([
-
-                    'status' => $status
-
-                ]);
-
-                broadcast(
-
-                    new WhatsAppMessageStatusUpdated(
-                        $message
-                    )
-
-                );
+                $message->update(['status' => $status]);
+                broadcast(new WhatsAppMessageStatusUpdated($message));
             }
 
             return response()->json(['success' => true]);
@@ -62,28 +51,39 @@ class WhatsAppWebhookController extends Controller
         $mobile = $messageData['from'];
         $contact = Contact::where('mobile', $mobile)->first();
         
-        
-        
         $message = Message::create([
-
             'contact_id' => $contact?->id,
-
             'mobile' => $mobile,
-
             'message' => $messageData['text']['body'] ?? '',
-
             'direction' => 'incoming',
-
             'status' => 'received',
         ]);
 
-        broadcast(
-            new NewWhatsAppMessageReceived(
-                $message
-            )
-        );
+        broadcast(new NewWhatsAppMessageReceived($message));
 
-        
+        // 4. Automation Rule Check
+        $rule = AutomationRule::query()
+            ->where('is_active', true)
+            ->where('keyword', Str::lower($messageData['text']['body'] ?? ''))
+            ->first();
+
+        if ($rule) {
+            $service = new WhatsAppService();
+            $response = $service->sendTextMessage($mobile, $rule->reply_message);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                Message::create([
+                    'contact_id' => $contact?->id,
+                    'mobile' => $mobile,
+                    'message' => $rule->reply_message,
+                    'direction' => 'outgoing',
+                    'status' => 'sent',
+                    'whatsapp_message_id' => $data['messages'][0]['id'] ?? null
+                ]);
+            }
+        }
 
         return response()->json(['success' => true]);
     }

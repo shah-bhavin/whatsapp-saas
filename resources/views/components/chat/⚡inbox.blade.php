@@ -3,6 +3,9 @@
 use Livewire\Component;
 use App\Models\Contact;
 use App\Models\Message;
+use App\Models\Label;
+use App\Models\ContactNote;
+use App\Services\WhatsAppService;
 use Livewire\Attributes\On;
 
 new class extends Component {
@@ -11,23 +14,9 @@ new class extends Component {
     public $messages = [];
     public $replyMessage = '';
     public $noteText = '';
-
-    public $statuses = [
-
-        'new_lead',
-
-        'interested',
-
-        'customer',
-
-        'closed'
-
-    ];
-
+    public $statuses = ['new_lead', 'interested', 'customer', 'closed'];
     public $selectedStatus = '';
-
     public $selectedLabels = [];
-
     public $allLabels = [];
 
     #[On('refreshChat')]
@@ -40,7 +29,7 @@ new class extends Component {
 
     public function mount()
     {
-        $this->allLabels = \App\Models\Label::all();
+        $this->allLabels = Label::all();
         $this->loadContacts();
     }
 
@@ -53,7 +42,6 @@ new class extends Component {
             )
             ->latest()
             ->get();
-            
     }
 
     public function selectContact($contactId)
@@ -71,10 +59,10 @@ new class extends Component {
             ->get()
             ->reverse();
     }
-    
+
     public function sendReply()
     {
-        $service = new \App\Services\WhatsAppService();
+        $service = new WhatsAppService();
         $response = $service->sendTextMessage(
             $this->selectedContact->mobile,
             $this->replyMessage
@@ -83,6 +71,7 @@ new class extends Component {
         if ($response->successful()) {
             $data = $response->json();
             $whatsappMessageId = $data['messages'][0]['id'] ?? null;
+
             Message::create([
                 'contact_id'          => $this->selectedContact->id,
                 'mobile'              => $this->selectedContact->mobile,
@@ -99,45 +88,38 @@ new class extends Component {
 
     public function saveNote()
     {
-        \App\Models\ContactNote::create([
+        ContactNote::create([
             'contact_id' => $this->selectedContact->id,
             'user_id'    => auth()->id(),
             'note'       => $this->noteText
         ]);
 
         $this->noteText = '';
+        $this->selectedContact->refresh();
+    }
+
+    public function updateStatus()
+    {
+        if (empty($this->selectedStatus)) {
+            return;
+        }
+
+        $this->selectedContact->update([
+            'status' => $this->selectedStatus
+        ]);
 
         $this->selectedContact->refresh();
     }
 
-public function updateStatus() 
-{
-    // Safety check to ensure a real status is selected
-    if (empty($this->selectedStatus)) {
-        return;
+    public function updateLabels()
+    {
+        $this->selectedContact->labels()->sync($this->selectedLabels);
+        $this->selectedContact->refresh();
     }
-
-    $this->selectedContact->update([
-        'status' => $this->selectedStatus
-    ]);
-
-    $this->selectedContact->refresh();
-}
-
-
-public function updateLabels()
-{
-    $this->selectedContact
-        ->labels()
-        ->sync(
-            $this->selectedLabels
-        );
-
-    $this->selectedContact->refresh();
-}
 };
 
 ?>
+
 
 <div style="display: flex; height: 80vh; max-height: 80vh; gap: 10px; font-family: sans-serif;" id="chat-wrapper">
     <!-- CONTACT SIDEBAR -->
@@ -165,14 +147,10 @@ public function updateLabels()
                             </small>
                             @if($message->direction === 'outgoing')
                                 <div>
-                                    @if($message->status === 'sent')
-                                        ✓
-                                    @elseif($message->status === 'delivered')
-                                        ✓✓
-                                    @elseif($message->status === 'read')
-                                        ✓✓ Read
-                                    @elseif($message->status === 'failed')
-                                        Failed
+                                    @if($message->status === 'sent') ✓ 
+                                    @elseif($message->status === 'delivered') ✓✓ 
+                                    @elseif($message->status === 'read') ✓✓ Read 
+                                    @elseif($message->status === 'failed') Failed 
                                     @endif
                                 </div>
                             @endif
@@ -204,6 +182,7 @@ public function updateLabels()
             <p><strong>Status:</strong> {{ $selectedContact->status }}</p>
             <p><strong>Follow Up:</strong> {{ $selectedContact->follow_up_at }}</p>
             <hr>
+            
             <h4>Labels</h4>
             @foreach($selectedContact->labels as $label)
                 <span style="background: {{ $label->color }}; color:#fff; padding:5px 10px; border-radius:10px; display:inline-block; margin-bottom:5px;">
@@ -211,59 +190,36 @@ public function updateLabels()
                 </span>
             @endforeach
             <hr>
+
+            <h4>Status</h4>
+            <select wire:model.live="selectedStatus" wire:change="updateStatus" style="width: 100%; padding: 10px;">
+                <option value="">Select Status</option>
+                @foreach($statuses as $status)
+                    <option value="{{ $status }}">{{ ucfirst($status) }}</option>
+                @endforeach
+            </select>
             <hr>
 
-<h4>Status</h4>
-
-<select wire:model.live="selectedStatus" wire:change="updateStatus" style="width: 100%; padding: 10px;">
-    <option value="">Select Status</option>
-    @foreach($statuses as $status)
-        <option value="{{ $status }}">{{ ucfirst($status) }}</option>
-    @endforeach
-</select>
-
-<hr>
-
-<h4>Labels</h4>
-
-@foreach($allLabels as $label)
-
-    <label style="
-        display:block;
-        margin-bottom:10px;
-    ">
-
-        <input
-            type="checkbox"
-
-            value="{{ $label->id }}"
-
-            wire:model="selectedLabels"
-
-            wire:change="updateLabels"
-        >
-
-        {{ $label->name }}
-
-    </label>
-
-@endforeach
-
+            <h4>Manage Labels</h4>
+            @foreach($allLabels as $label)
+                <label style="display:block; margin-bottom:10px;">
+                    <input type="checkbox" value="{{ $label->id }}" wire:model="selectedLabels" wire:change="updateLabels">
+                    {{ $label->name }}
+                </label>
+            @endforeach
+            <hr>
 
             <h4>Notes</h4>
             @foreach($selectedContact->notes as $note)
                 <div style="border:1px solid #ddd; padding:10px; margin-bottom:10px;">
-                    {{ $note->note }}
-                    <br>
+                    {{ $note->note }}<br>
                     <small>{{ $note->user->name }}</small>
                 </div>
             @endforeach
 
             <form wire:submit="saveNote">
                 <textarea wire:model="noteText" placeholder="Internal note" style="width:100%; height:100px; margin-bottom: 5px;"></textarea>
-                <button type="submit">
-                    Save Note
-                </button>
+                <button type="submit">Save Note</button>
             </form>
         @endif
     </div>
@@ -271,13 +227,15 @@ public function updateLabels()
     <script>
         document.addEventListener('livewire:init', () => {
             Echo.channel('whatsapp-chat')
-            .listen('NewWhatsAppMessageReceived', (event) => {
-                console.log('New Message', event);
-                Livewire.dispatch('refreshChat');
-            }).listen('WhatsAppMessageStatusUpdated', (event) => {
-                console.log('Status Update', event);
-                Livewire.dispatch('refreshChat');
-            });
+                .listen('NewWhatsAppMessageReceived', (event) => {
+                    console.log('New Message', event);
+                    Livewire.dispatch('refreshChat');
+                })
+                .listen('WhatsAppMessageStatusUpdated', (event) => {
+                    console.log('Status Update', event);
+                    Livewire.dispatch('refreshChat');
+                });
         });
     </script>
 </div>
+
