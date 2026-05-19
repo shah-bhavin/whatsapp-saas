@@ -12,6 +12,24 @@ new class extends Component {
     public $replyMessage = '';
     public $noteText = '';
 
+    public $statuses = [
+
+        'new_lead',
+
+        'interested',
+
+        'customer',
+
+        'closed'
+
+    ];
+
+    public $selectedStatus = '';
+
+    public $selectedLabels = [];
+
+    public $allLabels = [];
+
     #[On('refreshChat')]
     public function refreshChat()
     {
@@ -22,6 +40,7 @@ new class extends Component {
 
     public function mount()
     {
+        $this->allLabels = \App\Models\Label::all();
         $this->loadContacts();
     }
 
@@ -34,11 +53,14 @@ new class extends Component {
             )
             ->latest()
             ->get();
+            
     }
 
     public function selectContact($contactId)
     {
         $this->selectedContact = Contact::find($contactId);
+        $this->selectedStatus = $this->selectedContact->status;
+        $this->selectedLabels = $this->selectedContact->labels->pluck('id')->toArray();
         $this->loadMessages();
     }
 
@@ -87,6 +109,29 @@ new class extends Component {
 
         $this->selectedContact->refresh();
     }
+
+    public function updateStatus()
+{
+    $this->selectedContact->update([
+
+        'status' =>
+            $this->selectedStatus
+
+    ]);
+
+    $this->selectedContact->refresh();
+}
+
+public function updateLabels()
+{
+    $this->selectedContact
+        ->labels()
+        ->sync(
+            $this->selectedLabels
+        );
+
+    $this->selectedContact->refresh();
+}
 };
 
 ?>
@@ -163,6 +208,65 @@ new class extends Component {
                 </span>
             @endforeach
             <hr>
+            <hr>
+
+<h4>Status</h4>
+
+<select
+    wire:model="selectedStatus"
+
+    wire:change="updateStatus"
+
+    style="
+        width:100%;
+        padding:10px;
+    "
+>
+
+    <option value="">
+        Select Status
+    </option>
+
+    @foreach($statuses as $status)
+
+        <option value="{{ $status }}">
+
+            {{ ucfirst($status) }}
+
+        </option>
+
+    @endforeach
+
+</select>
+
+<hr>
+
+<h4>Labels</h4>
+
+@foreach($allLabels as $label)
+
+    <label style="
+        display:block;
+        margin-bottom:10px;
+    ">
+
+        <input
+            type="checkbox"
+
+            value="{{ $label->id }}"
+
+            wire:model="selectedLabels"
+
+            wire:change="updateLabels"
+        >
+
+        {{ $label->name }}
+
+    </label>
+
+@endforeach
+
+
             <h4>Notes</h4>
             @foreach($selectedContact->notes as $note)
                 <div style="border:1px solid #ddd; padding:10px; margin-bottom:10px;">
@@ -183,7 +287,8 @@ new class extends Component {
 
     <script>
         document.addEventListener('livewire:init', () => {
-            Echo.channel('whatsapp-chat').listen('NewWhatsAppMessageReceived', (event) => {
+            Echo.channel('whatsapp-chat')
+            .listen('NewWhatsAppMessageReceived', (event) => {
                 console.log('New Message', event);
                 Livewire.dispatch('refreshChat');
             }).listen('WhatsAppMessageStatusUpdated', (event) => {

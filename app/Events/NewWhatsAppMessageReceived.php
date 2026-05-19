@@ -37,8 +37,4 @@ class NewWhatsAppMessageReceived implements ShouldBroadcast
 
         ];
     }
-    public function broadcastAs()
-    {
-        return 'NewWhatsAppMessageReceived';
-    }
 }
