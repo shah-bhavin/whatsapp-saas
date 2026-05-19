@@ -14,6 +14,8 @@ class AutomationRule extends Model
 
         'reply_message',
 
-        'is_active'
+        'is_active',
+
+        'use_ai'
     ];
 }

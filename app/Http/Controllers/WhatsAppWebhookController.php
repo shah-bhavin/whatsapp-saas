@@ -7,6 +7,7 @@ use App\Events\WhatsAppMessageStatusUpdated;
 use App\Models\AutomationRule;
 use App\Models\Contact;
 use App\Models\Message;
+use App\Services\AIService;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -68,8 +69,23 @@ class WhatsAppWebhookController extends Controller
             ->first();
 
         if ($rule) {
+            if ($rule->use_ai) {
+
+    $ai =
+        new AIService();
+
+    $reply =
+        $ai->ask($messageData['text']['body']);
+
+} else {
+
+    $reply =
+        $rule->reply_message;
+}
+
+
             $service = new WhatsAppService();
-            $response = $service->sendTextMessage($mobile, $rule->reply_message);
+            $response = $service->sendTextMessage($mobile, $reply);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -77,7 +93,7 @@ class WhatsAppWebhookController extends Controller
                 Message::create([
                     'contact_id' => $contact?->id,
                     'mobile' => $mobile,
-                    'message' => $rule->reply_message,
+                    'message' => $reply,
                     'direction' => 'outgoing',
                     'status' => 'sent',
                     'whatsapp_message_id' => $data['messages'][0]['id'] ?? null
