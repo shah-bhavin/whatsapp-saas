@@ -7,6 +7,8 @@ use App\Models\Label;
 use App\Models\ContactNote;
 use App\Services\WhatsAppService;
 use Livewire\Attributes\On;
+use App\Models\VendorUsage;
+
 
 new class extends Component {
     public $contacts = [];
@@ -69,6 +71,12 @@ new class extends Component {
         );
 
         if ($response->successful()) {
+            $vendor = auth()->user()->vendor;
+            VendorUsage::updateOrCreate(
+                ['vendor_id' => $vendor->id, 'month' => now()->format('Y-m')],
+                ['messages_sent' => DB::raw('messages_sent + 1')]
+            );
+
             $data = $response->json();
             $whatsappMessageId = $data['messages'][0]['id'] ?? null;
 

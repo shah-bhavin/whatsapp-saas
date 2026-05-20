@@ -27,4 +27,22 @@ class Vendor extends Model
     {
         return $this->hasMany(Campaign::class);
     }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(
+            VendorSubscription::class
+        );
+    }
+
+    public function activeSubscription()
+    {
+        return $this->hasOne(
+            VendorSubscription::class
+        )
+
+        ->where('is_active', true)
+
+        ->latest();
+    }
 }

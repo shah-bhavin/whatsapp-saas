@@ -2,15 +2,17 @@
 
 namespace App\Jobs;
 
+use App\Events\CampaignProgressUpdated;
 use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\Message;
+use App\Models\VendorUsage;
+use App\Services\WhatsAppService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use App\Events\CampaignProgressUpdated;
-use App\Services\WhatsAppService;
+use Illuminate\Support\Facades\DB;
 
 class SendWhatsAppMessageJob implements ShouldQueue
 {
@@ -44,13 +46,27 @@ class SendWhatsAppMessageJob implements ShouldQueue
         ]);
         // 2. Dispatch via WhatsApp Service
         $service = new WhatsAppService();
-
+        
         if ($this->campaign->type === 'template') {
-
             $response = $service->sendTemplateMessage($this->contact->mobile, $this->campaign->template->template_name, [$this->contact->name]);
-
+            if ($response->successful()) {
+                $vendor = auth()->user()->vendor;
+                VendorUsage::updateOrCreate(
+                    ['vendor_id' => $vendor->id, 'month' => now()->format('Y-m')],
+                    ['messages_sent' => DB::raw('messages_sent + 1')]
+                );
+            }
         } else {
-            $response = $service->sendTextMessage($this->contact->mobile, $this->campaign->message);
+            //$response = $service->sendTextMessage($this->contact->mobile, $this->campaign->message);
+            $play = "mnbfnsdfs hgfhgfhgf";
+            $response = $service->sendTextMessage($this->contact->mobile, $play);
+            if ($response->successful()) {
+                $vendor = auth()->user()->vendor;
+                VendorUsage::updateOrCreate(
+                    ['vendor_id' => $vendor->id, 'month' => now()->format('Y-m')],
+                    ['messages_sent' => DB::raw('messages_sent + 1')]
+                );
+            }
         }
         
 
