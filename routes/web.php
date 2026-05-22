@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MetaEmbeddedSignupController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome');
@@ -22,3 +23,10 @@ Route::middleware(['auth', 'vendor.limit'])->group(function () {
     Route::livewire('/campaigns', 'campaigns.index')->middleware(['auth']);
     Route::livewire('/chat', 'chat.inbox')->middleware('auth');
 });
+
+Route::middleware(['auth'])->group(function () {
+    Route::livewire('/connect-whatsapp', 'settings.connect-whatsapp');
+});
+Route::post('/meta/exchange-token', [MetaEmbeddedSignupController::class, 'exchangeToken'])->middleware('auth');
+Route::get('/meta/callback', function () { return 'Meta Callback Working';} );
+Route::post('/meta/save-account', [MetaEmbeddedSignupController::class, 'saveAccount']);
