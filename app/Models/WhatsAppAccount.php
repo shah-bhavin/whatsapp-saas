@@ -16,5 +16,10 @@ class WhatsAppAccount extends Model
         'access_token',
         'verify_token',
         'is_active',
+        'is_default',
+        'status',
+        'quality_rating',
+        'last_synced_at',
+        'token_expires_at',
     ];
 }

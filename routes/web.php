@@ -28,5 +28,6 @@ Route::middleware(['auth'])->group(function () {
     Route::livewire('/connect-whatsapp', 'settings.connect-whatsapp');
 });
 Route::post('/meta/exchange-token', [MetaEmbeddedSignupController::class, 'exchangeToken'])->middleware('auth');
-Route::get('/meta/callback', function () { return 'Meta Callback Working';} );
-Route::post('/meta/save-account', [MetaEmbeddedSignupController::class, 'saveAccount']);
+Route::get('/meta/callback', function () { return 'Meta Callback Working';} )->middleware('auth');
+Route::post('/meta/save-account', [MetaEmbeddedSignupController::class, 'saveAccount'])->middleware('auth');
+Route::livewire('/whatsapp-accounts', 'whatsapp.accounts')->middleware('auth');

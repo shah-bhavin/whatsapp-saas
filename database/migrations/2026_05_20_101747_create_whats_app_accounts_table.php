@@ -15,14 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('vendor_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            /* Office Number Sales Number */
             $table->string('phone_number')->nullable();
-            $table->string('phone_number_id');
-            $table->string('business_account_id');
+            $table->string('phone_number_id')->unique();
+            $table->string('business_account_id')->nullable();
             $table->longText('access_token');
             $table->string('verify_token')->nullable();
             $table->boolean('is_active')->default(true);
-
             $table->timestamps();
         });
     }
