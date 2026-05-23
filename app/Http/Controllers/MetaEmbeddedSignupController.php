@@ -92,6 +92,23 @@ class MetaEmbeddedSignupController extends Controller
                 'is_active'           => true,
             ]);
 
+            $metaService = new \App\Services\MetaWhatsAppService();
+
+            /*
+            SUBSCRIBE WEBHOOK
+            */
+            $subscriptionResponse = $metaService->subscribeWebhook($wabaId, $accessToken);
+
+            logger($subscriptionResponse);
+
+            /*
+            UPDATE STATUS
+            */
+            $account->update([
+                'webhook_subscribed' => isset($subscriptionResponse['success']) || isset($subscriptionResponse['id'])
+            ]);
+
+
             return response()->json([
                 'success' => true,
                 'message' => 'WhatsApp Account Saved',

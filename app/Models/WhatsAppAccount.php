@@ -21,5 +21,10 @@ class WhatsAppAccount extends Model
         'quality_rating',
         'last_synced_at',
         'token_expires_at',
+        'webhook_subscribed',
+        'token_valid',
+        'messaging_limit',
+        'account_review_status',
+        'last_error',
     ];
 }
